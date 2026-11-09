@@ -9,7 +9,7 @@ public class ConsoleUI
 {
     // Logic lives in the services; readonly, so they are never replaced
     private readonly TransactionService _transactionService = new();
-    private readonly CategoryService _categoryService;
+    private readonly CategoryService _categoryService = new();
     // Personal data: money.json is in .gitignore, so it never goes to GitHub
     private readonly MoneyFileStorage _storage = new("moneyTracker.json");
 

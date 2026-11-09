@@ -4,7 +4,7 @@ using MoneyTracker.Models;
 namespace MoneyTracker.Services;
 
 // Holds the category list: add, list, search, sort, statistics.
-// Statistics need the transactions, so the service gets TransactionService in the constructor.
+// Statistics are calculated from the list of expenses passed to each method
 // Does not print anything; errors are reported with exceptions.
 public class CategoryService
 {
