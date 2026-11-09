@@ -482,5 +482,5 @@ $RECYCLE.BIN/
 *.swp
 
 # MoneyTracker: personal financial data, never upload to GitHub
-money.json
+moneyTracker.json
 *.csv
