@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using MoneyTracker.Exceptions;
 
 namespace MoneyTracker.Models;
 
@@ -19,7 +20,7 @@ public abstract class Transaction
     // "private set": can be changed only inside this class - in the constructor or in Update(),
     // so invalid data can't get in when creating or editing.
 
-    // Short title (not empty, max length?)
+    // Short title: not empty, at most MaxNameLength characters
     public string Name { get; private set; }
 
     // When the transaction took place (not in the future)
@@ -33,8 +34,11 @@ public abstract class Transaction
     [JsonIgnore]
     public abstract decimal SignedAmount { get; }
 
-    // Longer text, optional: null or empty is allowed (max length?)
+    // Longer text, optional: null or empty is allowed; at most MaxDescriptionLength characters
     public string? Description { get; private set; }
+
+    public const int MaxNameLength = 35;
+    public const int MaxDescriptionLength = 100;
 
     // Used when creating a transaction and when loading from the file.
     // Parameter names match the property names, so the JSON serializer uses this constructor when loading.
@@ -59,14 +63,33 @@ public abstract class Transaction
         Description = description?.Trim();
     }
 
-    // Checks the data for the constructor and Update; throws ValidationException with a clear message on the first error.
-    // TODO: implement:
-    //   name: not null/empty/whitespace; not longer than the max length (constant, e.g. 50)
-    //   date: IsValidDate (not in the future)
-    //   amount: IsValidAmount (> 0, at most 2 decimals)
-    //   description: null or empty is allowed; not longer than the max length (constant, e.g. 200)
+    // Checks the data for the constructor and Update; 
+    // throws ValidationException with a clear message on the first error.
+    // description: null or empty is allowed; 
+    // If description is null, description?.Trim().Length is null, 
+    // and "null > MaxDescriptionLength" is false, so no exception
     private static void Validate(string name, DateTime date, decimal amount, string? description)
     {
+        if (String.IsNullOrWhiteSpace(name))
+        {
+            throw new ValidationException("Transaction name can't be empty.");
+        }
+        if (name.Trim().Length > MaxNameLength)
+        {
+            throw new ValidationException($"Transaction name can't be longer than {MaxNameLength} characters.");
+        }
+        if (!IsValidDate(date))
+        {
+            throw new ValidationException("Transaction date can't be in the future.");
+        }
+        if (!IsValidAmount(amount))
+        {
+            throw new ValidationException("Transaction amount must be greater than 0 and have at most 2 decimal places.");
+        }
+        if (description?.Trim().Length > MaxDescriptionLength)
+        {
+            throw new ValidationException($"Transaction description can't be longer than {MaxDescriptionLength} characters.");
+        }
     }
 
     // Compare date without time
