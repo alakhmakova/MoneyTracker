@@ -97,14 +97,15 @@ public class ConsoleUI
         }
     }
 
-    // ---------- TODO: implement the menu items below ----------
-
     // First start: ask for the currency (SEK, USD, EUR); the main menu is shown only after that
     private void AskCurrency()
     {
-        // TODO: read 3 letters, save in _currency, then SaveToFile()
-        InputHelper.ShowWarning("Currency: not implemented yet");
+        _currency = InputHelper.ReadCurrency("Enter currency (e.g. SEK, USD, EUR): ", "Currency can't be empty", "Currency must be 3 letters, e.g. SEK");
+        SaveToFile();
+        InputHelper.ShowSuccess($"Currency {_currency} saved");
     }
+
+    // ---------- TODO: implement the menu items below ----------
 
     // Above the menu: Balance / Incomes / Expenses with currency
     private void ShowStatistics()

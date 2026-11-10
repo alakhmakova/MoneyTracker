@@ -110,6 +110,27 @@ public static class InputHelper
         }
     }
 
+    // Ask until the user enters a valid currency; returns it in upper case ("sek" -> "SEK").
+    // No "q" here: the currency is required
+    public static string ReadCurrency(string prompt, string emptyInputMessage, string invalidCurrencyMessage)
+    {
+        while (true)
+        {
+            string userInput = ReadText(prompt, emptyInputMessage); // ReadText already trims
+            if (IsValidCurrency(userInput))
+            {
+                return userInput.ToUpper();
+            }
+            ShowError(invalidCurrencyMessage);
+        }
+    }
+
+    // true if the text is exactly 3 Latin letters (SEK, usd, Eur...)
+    public static bool IsValidCurrency(string text)
+    {
+        return text.Length == 3 && text.All(char.IsAsciiLetter);
+    }
+
     // ---------- TODO: implement (used by Edit: Enter = keep the current value) ----------
     // Empty input returns currentValue; "q" cancels; otherwise the same checks as ReadText / ReadDate / ReadAmount
     public static string ReadTextOrKeep(string prompt, string currentValue) => throw new NotImplementedException();
