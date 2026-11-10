@@ -221,7 +221,14 @@ public class ConsoleUI
             MoneyData data = _storage.Load();
             _transactionService.LoadData(data.Transactions, data.NextTransactionId);
             _categoryService.LoadData(data.Categories, data.NextCategoryId);
-            _currency = data.Currency;
+            if (data.Currency is null || !InputHelper.IsValidCurrency(data.Currency))
+            {
+                _currency = null;
+            }
+            else
+            {
+                _currency = data.Currency.ToUpper();
+            }
             if (data.Transactions.Count > 0)
             {
                 InputHelper.ShowSuccess($"{data.Transactions.Count} transactions loaded from file");

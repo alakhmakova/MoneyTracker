@@ -1,3 +1,4 @@
+using MoneyTracker.Exceptions;
 using System.Text.Json.Serialization;
 
 namespace MoneyTracker.Models;
@@ -13,9 +14,18 @@ public class Category
     // Not empty, max length; unique (ignoring case) is checked in CategoryService, because only it sees all categories
     public string Name { get; private set; }
 
+    public const int MaxNameLength = 35;
+
     public Category(string name)
     {
-        // TODO: throw ValidationException if the name is empty/whitespace or longer than the max length (e.g. 30)
+        if (String.IsNullOrWhiteSpace(name))
+        {
+            throw new ValidationException("Category name can't be empty.");
+        }
+        if (name.Trim().Length > MaxNameLength)
+        {
+            throw new ValidationException($"Category name can't be longer than {MaxNameLength} characters.");
+        }
         Name = name.Trim();
     }
 }
