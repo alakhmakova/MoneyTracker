@@ -14,12 +14,18 @@ public class CategoryService
     // Next free id, to save in the file
     public int NextId => _ids.NextId;
 
-    // Give the category the next id and add it to the list; throws ArgumentNullException if category is null
+    // Give the category the next id and add it to the list; 
+    // throws ArgumentNullException if category is null
+    // throws ValidationException if category already exists
     public void AddCategory(Category category)
     {
         if (category is null)
         {
             throw new ArgumentNullException(nameof(category));
+        }
+        if (_categories.Any(c => c.Name.Equals(category.Name, StringComparison.OrdinalIgnoreCase)))
+        {
+            throw new ValidationException($"Category \"{category.Name}\" already exists.");
         }
         category.Id = _ids.GetNextId();
         _categories.Add(category);

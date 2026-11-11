@@ -325,13 +325,39 @@ public class ConsoleUI
         string type = transaction.Type.ToString().ToLower(); // "income" or "expense"
         InputHelper.ShowSuccess($"The {type} \"{transaction.Name}\" with amount {transaction.Amount:0.00} {_currency} and date {transaction.Date:yyyy-MM-dd} was successfully {action}\n");
     }
+    private void ShowCategorySuccess(Category category, string action)
+    {
+        InputHelper.ShowSuccess($"The category \"{category.Name}\" was successfully {action}\n");
+    }
 
     // ---------- TODO: implement the menu items below ----------
 
     // 5: category name (all categories are expense categories)
     private void CreateCategory()
     {
-        InputHelper.ShowWarning("Create Category: not implemented yet");
+        ShowHeader("Create category | Enter q to cancel");
+        try
+        {
+            while (true)
+            {
+                try
+                {
+                    string name = InputHelper.ReadTextOrCancel($"Enter category name (max {Category.MaxNameLength} characters, q - cancel): ", "Category name can't be empty", Category.MaxNameLength, $"Category name can't be longer than {Category.MaxNameLength} characters.");
+                    Category category = new(name);
+                    _categoryService.AddCategory(category);
+                    ShowCategorySuccess(category, "created");
+                }
+                // Safety net: the Transaction constructor has the final word on the rules
+                catch (ValidationException e)
+                {
+                    InputHelper.ShowError(e.Message);
+                }
+            }
+        }
+        catch (UserCancelledException)
+        {
+            InputHelper.ShowInfo("Back to main menu");
+        }
     }
 
     // 6: category -> several transaction ids at once
