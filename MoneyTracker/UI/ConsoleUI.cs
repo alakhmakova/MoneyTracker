@@ -35,7 +35,7 @@ public class ConsoleUI
             while (run)
             {
                 Console.WriteLine();
-                ShowStatistics();
+                ShowStatistics(_transactionService.GetAllTransactions());
                 Console.WriteLine("1-Add Transaction");
                 Console.WriteLine("2-List Transactions (All/Incomes/Expenses)");
                 Console.WriteLine("3-Edit Transaction");
@@ -142,13 +142,10 @@ public class ConsoleUI
         }
     }
 
-    // ---------- TODO: implement the menu items below ----------
-
-    // Above the menu: Balance / Incomes / Expenses with currency
-    private void ShowStatistics()
+    // Above the menu: Balance / Incomes / Expenses of the given transactions
+    private void ShowStatistics(List<Transaction> items)
     {
-        // TODO: use _transactionService.CalculateBalance(), GetTotalIncome(), GetTotalExpenses()
-        InputHelper.ShowInfo($"Balance: 0.00 {_currency} | Incomes: 0.00 {_currency} | Expenses: 0.00 {_currency}");
+        InputHelper.ShowInfo(GetTotalsText(items, null));
     }
 
     // 2: 1-All 2-Incomes 3-Expenses -> all or for a period -> sort field -> ascending/descending -> table.
@@ -203,8 +200,28 @@ public class ConsoleUI
             InputHelper.ShowWarning("No transactions yet. Choose 1 from the main menu to add a transaction");
             return;
         }
-        DisplayTransactionsTable(transactions);
+        DisplayTransactionsTable(transactions, GetTotalsText(transactions, type));
     }
+
+    // Totals text: only "Total" for incomes or expenses; Balance / Incomes / Expenses for all (type == null).
+    // Used under the transactions table and above the menu.
+    private string GetTotalsText(List<Transaction> transactions, TransactionType? type)
+    {
+        if (type is TransactionType.Income)
+        {
+            return $"Total income: {_transactionService.GetTotalIncome(transactions):0.00} {_currency}";
+        }
+        if (type is TransactionType.Expense)
+        {
+            return $"Total expenses: {_transactionService.GetTotalExpenses(transactions):0.00} {_currency}";
+        }
+        decimal incomes = _transactionService.GetTotalIncome(transactions);
+        decimal expenses = _transactionService.GetTotalExpenses(transactions);
+        decimal balance = _transactionService.CalculateBalance(transactions);
+        return $"Balance: {balance:0.00} {_currency} | Incomes: {incomes:0.00} {_currency} | Expenses: {expenses:0.00} {_currency}";
+    }
+
+    // ---------- TODO: implement the menu items below ----------
 
     // 3: table -> id -> one scenario for all fields, each shown with its current value:
     //    "Name [ICA]: " ... Enter = keep current value, q = cancel.
@@ -334,13 +351,13 @@ public class ConsoleUI
     }
 
     // ---------- Tables ----------
-    // TODO: under the transactions table: Incomes, Expenses, Balance for the shown list.
     // TODO: DisplayCategoriesTable(List<Category> items) - columns Id, Name, Total, Count, %; FormatRow(..., new[] { 2, 3, 4 });
     //   plus a separate "Uncategorized" row for expenses with CategoryId == null.
 
     // Print transactions as a table; column width = longest value or header + padding.
     // Amount (column 3) is aligned to the right.
-    private void DisplayTransactionsTable(List<Transaction> transactions)
+    // footer (optional): text under the table, aligned to its right edge (e.g. totals)
+    private void DisplayTransactionsTable(List<Transaction> transactions, string? footer = null)
     {
         string[] headers = { "Id", "Name", "Date", "Amount", "Category", "Description" };
         int[] rightAlignedColumns = { 3 };
@@ -356,6 +373,10 @@ public class ConsoleUI
             Console.WriteLine(FormatRow(row, widths, rightAlignedColumns));
         }
         InputHelper.ShowInfo(new string('-', tableWidth));
+        if (footer != null)
+        {
+            InputHelper.ShowInfo(footer.PadLeft(tableWidth));
+        }
     }
 
     // One category -> table cells as text; total, count and % are calculated from the given expenses

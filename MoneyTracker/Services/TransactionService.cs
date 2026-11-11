@@ -74,17 +74,29 @@ public class TransactionService
         _ids.Restore(savedNextId, maxId);
     }
 
+    // Totals and balance
+    // Sum of the incomes in the given list
+    public decimal GetTotalIncome(List<Transaction> items)
+    {
+        return items.OfType<Income>().Sum(i => i.SignedAmount);
+    }
+
+    // Sum of the expenses in the given list; negative, because SignedAmount of an expense is negative
+    public decimal GetTotalExpenses(List<Transaction> items)
+    {
+        return items.OfType<Expense>().Sum(e => e.SignedAmount);
+    }
+
+    // Incomes minus expenses of the given list
+    public decimal CalculateBalance(List<Transaction> items)
+    {
+        return items.Sum(i => i.SignedAmount);
+    }
+
     // ---------- TODO: implement the methods below ----------
     public List<Transaction> GetIncomesForThePeriod(DateTime from, DateTime to) => throw new NotImplementedException();
     public List<Transaction> GetExpensesForThePeriod(DateTime from, DateTime to) => throw new NotImplementedException();
-    public List<Transaction> GetTransactionsForThePeriod(DateTime from, DateTime to) => throw new NotImplementedException(); // menu 2 "All"
-
-    // Totals and balance
-    public decimal GetTotalIncome() => throw new NotImplementedException();
-    public decimal GetTotalIncomeForThePeriod(DateTime from, DateTime to) => throw new NotImplementedException();
-    public decimal GetTotalExpenses() => throw new NotImplementedException();
-    public decimal GetTotalExpensesForThePeriod(DateTime from, DateTime to) => throw new NotImplementedException();
-    public decimal CalculateBalance() => throw new NotImplementedException();
+    public List<Transaction> GetTransactionsForThePeriod(DateTime from, DateTime to) => throw new NotImplementedException();
 
     // Edit: change the fields and return the updated transaction
     // (the category of an expense is changed with AddTransactionsToCategory, it works for one id too)
