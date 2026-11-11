@@ -221,17 +221,64 @@ public class ConsoleUI
         return $"Balance: {balance:0.00} {_currency} | Incomes: {incomes:0.00} {_currency} | Expenses: {expenses:0.00} {_currency}";
     }
 
-    // ---------- TODO: implement the menu items below ----------
-
-    // 3: table -> id -> one scenario for all fields, each shown with its current value:
+    // 3: id -> show the transaction -> y/n -> each field with its current value:
     //    "Name [ICA]: " ... Enter = keep current value, q = cancel.
-    //    Fields: Name, Date, Amount, Description; Category only for expenses (id, or 0 = Uncategorized)
+    //    Fields: Name, Date, Amount, Description.
+    //    TODO: Category for expenses (id, or 0 = Uncategorized) when categories are ready.
     private void EditTransaction()
     {
-        InputHelper.ShowWarning("Edit Transaction: not implemented yet");
+        if (!_transactionService.HasTransactions)
+        {
+            InputHelper.ShowWarning("No transactions to edit yet. Add a transaction first.");
+            return;
+        }
+
+        ShowHeader("Edit transaction | Enter q at any step to cancel");
+        try
+        {
+            // Edit one transaction after another until the user enters q
+            while (true)
+            {
+                try
+                {
+                    int id = InputHelper.ReadId("Enter transaction id to edit (q - back to menu): ", "Transaction id can't be empty", "Transaction id must be a whole number greater than 0");
+                    Transaction transaction = _transactionService.GetTransactionById(id);
+                    DisplayTransactionsTable(new List<Transaction> { transaction });
+                    if (InputHelper.ReadYesNo("Edit this transaction? (y/n): ", "Answer can't be empty", "Please enter y or n"))
+                    {
+                        string name = InputHelper.ReadTextOrKeep($"Name [{transaction.Name}] (max {Transaction.MaxNameLength} characters, Enter - keep, q - cancel): ", transaction.Name, Transaction.MaxNameLength, $"Transaction name can't be longer than {Transaction.MaxNameLength} characters.");
+                        DateTime date = InputHelper.ReadDateOrKeep($"Date [{transaction.Date:yyyy-MM-dd}] (yyyy-MM-dd, Enter - keep, q - cancel): ", transaction.Date, "Date must be in the format yyyy-MM-dd and can't be in the future");
+                        decimal amount = InputHelper.ReadAmountOrKeep($"Amount [{transaction.Amount:0.00}] (Enter - keep, q - cancel): ", transaction.Amount, "Amount must be greater than 0 with at most 2 decimals");
+                        string? description = InputHelper.ReadOptionalTextOrKeep($"Description [{transaction.Description}] (max {Transaction.MaxDescriptionLength} characters, Enter - keep, - to clear, q - cancel): ", transaction.Description, Transaction.MaxDescriptionLength, $"Transaction description can't be longer than {Transaction.MaxDescriptionLength} characters.");
+
+                        _transactionService.UpdateTransaction(id, name, date, amount, description);
+                        InputHelper.ShowSuccess($"The {transaction.Type} \"{transaction.Name}\" with amount {transaction.SignedAmount:0.00} {_currency} and date {transaction.Date:yyyy-MM-dd} was successfully edited\n");
+                    }
+                    else
+                    {
+                        InputHelper.ShowWarning("The transaction was not edited.\n");
+                    }
+                }
+                catch (TransactionNotFoundException e)
+                {
+                    InputHelper.ShowWarning(e.Message);
+                }
+                // Safety net: the Transaction constructor and Update have the final word on the rules
+                catch (ValidationException e)
+                {
+                    InputHelper.ShowError(e.Message);
+                }
+            }
+        }
+        catch (UserCancelledException)
+        {
+            InputHelper.ShowInfo("Back to main menu");
+        }
     }
 
-    // 4: table -> id -> "will be deleted y/n"
+    // ---------- TODO: implement the menu items below ----------
+
+    // 4: id -> show the transaction -> "will be deleted y/n"
     private void DeleteTransaction()
     {
         InputHelper.ShowWarning("Delete Transaction: not implemented yet");

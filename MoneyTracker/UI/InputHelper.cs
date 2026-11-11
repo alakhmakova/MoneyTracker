@@ -147,6 +147,23 @@ public static class InputHelper
 
     // Like ReadTextOrCancel, but empty input means "skip" and returns null;
     // asks again while the text is longer than maxLength
+    // Ask until the answer is y/yes (true) or n/no (false)
+    public static bool ReadYesNo(string prompt, string emptyInputMessage, string invalidAnswerMessage)
+    {
+        while (true)
+        {
+            string answer = ReadText(prompt, emptyInputMessage).ToLower();
+            if (answer == "y" || answer == "yes")
+            {
+                return true;
+            }
+            if (answer == "n" || answer == "no")
+            {
+                return false;
+            }
+            ShowError(invalidAnswerMessage);
+        }
+    }
     public static string? ReadOptionalText(string prompt, int maxLength, string tooLongMessage)
     {
         while (true)
@@ -175,27 +192,131 @@ public static class InputHelper
         }
     }
 
-    // ---------- TODO: implement (used by Edit: Enter = keep the current value) ----------
-    // Empty input returns currentValue; "q" cancels; otherwise the same checks as ReadText / ReadDate / ReadAmount
-    public static string ReadTextOrKeep(string prompt, string currentValue) => throw new NotImplementedException();
-    public static DateTime ReadDateOrKeep(string prompt, DateTime currentValue, string invalidDateMessage) => throw new NotImplementedException();
-    public static decimal ReadAmountOrKeep(string prompt, decimal currentValue, string invalidAmountMessage) => throw new NotImplementedException();
-
-    // Ask until the answer is y/yes (true) or n/no (false)
-    public static bool ReadYesNo(string prompt, string emptyInputMessage, string invalidAnswerMessage)
+    // Used by Edit: Enter keeps currentValue; "q" cancels; asks again while the text is longer than maxLength
+    public static string ReadTextOrKeep(string prompt, string currentValue, int maxLength, string tooLongMessage)
     {
         while (true)
         {
-            string answer = ReadText(prompt, emptyInputMessage).ToLower();
-            if (answer == "y" || answer == "yes")
+            Console.Write(prompt);
+            string? userInput = Console.ReadLine();
+
+            // ReadLine() returns null when the input stream is closed (Ctrl+Z or redirected input has ended).
+            if (userInput == null)
             {
-                return true;
+                throw new InputClosedException();
             }
-            if (answer == "n" || answer == "no")
+            if (userInput.Equals("q", StringComparison.OrdinalIgnoreCase))
             {
-                return false;
+                throw new UserCancelledException();
             }
-            ShowError(invalidAnswerMessage);
+            // Enter
+            if (string.IsNullOrWhiteSpace(userInput))
+            {
+                return currentValue;
+            }
+            if (userInput.Trim().Length <= maxLength)
+            {
+                return userInput.Trim();
+            }
+            ShowError(tooLongMessage);
+        }
+    }
+
+    // Used by Edit: Enter keeps currentValue; "q" cancels; asks again until the date has the format yyyy-MM-dd
+    // and is not in the future (Transaction.IsValidDate)
+    public static DateTime ReadDateOrKeep(string prompt, DateTime currentValue, string invalidDateMessage)
+    {
+        while (true)
+        {
+            Console.Write(prompt);
+            string? userInput = Console.ReadLine();
+
+            // ReadLine() returns null when the input stream is closed (Ctrl+Z or redirected input has ended).
+            if (userInput == null)
+            {
+                throw new InputClosedException();
+            }
+            if (userInput.Equals("q", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new UserCancelledException();
+            }
+            // Enter
+            if (string.IsNullOrWhiteSpace(userInput))
+            {
+                return currentValue;
+            }
+            if (DateTime.TryParseExact(userInput.Trim(), DateFormat, CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime date)
+                && Transaction.IsValidDate(date))
+            {
+                return date;
+            }
+            ShowError(invalidDateMessage);
+        }
+    }
+
+    // Used by Edit: Enter keeps currentValue; "q" cancels; asks again until the amount is valid (Transaction.IsValidAmount)
+    public static decimal ReadAmountOrKeep(string prompt, decimal currentValue, string invalidAmountMessage)
+    {
+        while (true)
+        {
+            Console.Write(prompt);
+            string? userInput = Console.ReadLine();
+
+            // ReadLine() returns null when the input stream is closed (Ctrl+Z or redirected input has ended).
+            if (userInput == null)
+            {
+                throw new InputClosedException();
+            }
+            if (userInput.Equals("q", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new UserCancelledException();
+            }
+            // Enter
+            if (string.IsNullOrWhiteSpace(userInput))
+            {
+                return currentValue;
+            }
+            if (TryParseAmount(userInput.Trim(), out decimal amount) && Transaction.IsValidAmount(amount))
+            {
+                return amount;
+            }
+            ShowError(invalidAmountMessage);
+        }
+    }
+
+    // Used by Edit for optional text: Enter keeps currentValue; "-" returns null (clear); "q" cancels;
+    // asks again while the text is longer than maxLength
+    public static string? ReadOptionalTextOrKeep(string prompt, string? currentValue, int maxLength, string tooLongMessage)
+    {
+        while (true)
+        {
+            Console.Write(prompt);
+            string? userInput = Console.ReadLine();
+
+            // ReadLine() returns null when the input stream is closed (Ctrl+Z or redirected input has ended).
+            if (userInput == null)
+            {
+                throw new InputClosedException();
+            }
+            if (userInput.Equals("q", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new UserCancelledException();
+            }
+            // Enter
+            if (string.IsNullOrWhiteSpace(userInput))
+            {
+                return currentValue;
+            }
+            // "-": clear the value
+            if (userInput.Trim() == "-")
+            {
+                return null;
+            }
+            if (userInput.Trim().Length <= maxLength)
+            {
+                return userInput.Trim();
+            }
+            ShowError(tooLongMessage);
         }
     }
 

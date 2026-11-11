@@ -1,3 +1,4 @@
+using System.Data.Common;
 using MoneyTracker.Exceptions;
 using MoneyTracker.Models;
 
@@ -93,15 +94,19 @@ public class TransactionService
         return items.Sum(i => i.SignedAmount);
     }
 
+    // Edit: change the fields and return the updated transaction
+    // (the category of an expense is changed with AddTransactionsToCategory, it works for one id too)
+    public Transaction UpdateTransaction(int id, string name, DateTime date, decimal amount, string? description)
+    {
+        Transaction transaction = GetTransactionById(id);
+        transaction.Update(name, date, amount, description);
+        return transaction;
+    }
+
     // ---------- TODO: implement the methods below ----------
     public List<Transaction> GetIncomesForThePeriod(DateTime from, DateTime to) => throw new NotImplementedException();
     public List<Transaction> GetExpensesForThePeriod(DateTime from, DateTime to) => throw new NotImplementedException();
     public List<Transaction> GetTransactionsForThePeriod(DateTime from, DateTime to) => throw new NotImplementedException();
-
-    // Edit: change the fields and return the updated transaction
-    // (the category of an expense is changed with AddTransactionsToCategory, it works for one id too)
-    public Transaction UpdateTransaction(int id, string name, DateTime date, decimal amount, string? description)
-        => throw new NotImplementedException();
 
     // Menu 6 and Edit: put one or several expenses into a category; null = Uncategorized.
     // TODO: what if an id belongs to an income? (skip it and report, or ValidationException)
