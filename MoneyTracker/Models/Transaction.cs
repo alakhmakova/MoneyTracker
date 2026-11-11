@@ -14,7 +14,8 @@ public abstract class Transaction
     [JsonInclude]
     public int Id { get; internal set; }
 
-    // Each child returns its own type
+    // Each child returns its own type; not saved to the file, because "$type" already says it
+    [JsonIgnore]
     public abstract TransactionType Type { get; }
 
     // "private set": can be changed only inside this class - in the constructor or in Update(),

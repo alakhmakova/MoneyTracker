@@ -10,6 +10,7 @@ public class Income : Transaction
     {
     }
 
+    [JsonIgnore]
     public override TransactionType Type => TransactionType.Income;
 
     // Income adds money to the balance

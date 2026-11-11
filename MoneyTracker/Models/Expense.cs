@@ -22,6 +22,7 @@ public class Expense : Transaction
         CategoryId = categoryId;
     }
 
+    [JsonIgnore]
     public override TransactionType Type => TransactionType.Expense;
 
     // Expense takes money from the balance

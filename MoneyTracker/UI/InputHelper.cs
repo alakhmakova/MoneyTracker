@@ -43,6 +43,20 @@ public static class InputHelper
         return userInput;
     }
 
+    // Like ReadTextOrCancel, but asks again while the text is longer than maxLength
+    public static string ReadTextOrCancel(string prompt, string emptyInputMessage, int maxLength, string tooLongMessage)
+    {
+        while (true)
+        {
+            string userInput = ReadTextOrCancel(prompt, emptyInputMessage);
+            if (userInput.Length <= maxLength)
+            {
+                return userInput;
+            }
+            ShowError(tooLongMessage);
+        }
+    }
+
     // Ask until the amount is valid (rules live in Transaction.IsValidAmount)
     public static decimal ReadAmount(string prompt, string emptyInputMessage, string invalidAmountMessage)
     {
@@ -129,6 +143,36 @@ public static class InputHelper
     public static bool IsValidCurrency(string text)
     {
         return text.Length == 3 && text.All(char.IsAsciiLetter);
+    }
+
+    // Like ReadTextOrCancel, but empty input means "skip" and returns null;
+    // asks again while the text is longer than maxLength
+    public static string? ReadOptionalText(string prompt, int maxLength, string tooLongMessage)
+    {
+        while (true)
+        {
+            Console.Write(prompt);
+            string? userInput = Console.ReadLine();
+            // ReadLine() returns null when the input stream is closed (Ctrl+Z or redirected input has ended).
+            if (userInput == null)
+            {
+                throw new InputClosedException();
+            }
+            if (string.IsNullOrWhiteSpace(userInput))
+            {
+                return null;
+            }
+            else if (userInput.Equals("q", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new UserCancelledException();
+            }
+
+            if (userInput.Trim().Length <= maxLength)
+            {
+                return userInput.Trim();
+            }
+            ShowError(tooLongMessage);
+        }
     }
 
     // ---------- TODO: implement (used by Edit: Enter = keep the current value) ----------

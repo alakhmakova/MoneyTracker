@@ -105,6 +105,43 @@ public class ConsoleUI
         InputHelper.ShowSuccess($"Currency {_currency} saved");
     }
 
+    // 1: income or expense -> name -> date -> amount -> description (Enter - skip) -> only for expense: category (existing / new / Enter = Uncategorized)
+    private void AddTransaction()
+    {
+        ShowHeader("Add transaction | Enter q at any step to cancel");
+        try
+        {
+            while (true)
+            {
+                try
+                {
+                    int type = InputHelper.ReadNumberInRange("1-Income 2-Expense (q - back to menu): ", 1, 2, "Transaction type can't be empty", "Please enter 1 or 2");
+                    string name = InputHelper.ReadTextOrCancel($"Enter name (max {Transaction.MaxNameLength} characters, q - cancel): ", "Transaction name can't be empty", Transaction.MaxNameLength, $"Transaction name can't be longer than {Transaction.MaxNameLength} characters.");
+                    DateTime date = InputHelper.ReadDate("Enter date yyyy-MM-dd (q - cancel): ", "Transaction date can't be empty", "Date must be in the format yyyy-MM-dd and can't be in the future");
+                    decimal amount = InputHelper.ReadAmount($"Enter amount in {_currency} (q - cancel): ", "Transaction amount can't be empty", "Amount must be greater than 0 with at most 2 decimals");
+                    string? description = InputHelper.ReadOptionalText($"Enter description (max {Transaction.MaxDescriptionLength} characters, Enter - skip, q - cancel): ", Transaction.MaxDescriptionLength, $"Transaction description can't be longer than {Transaction.MaxDescriptionLength} characters.");
+
+                    // Polymorphism: both are stored as Transaction
+                    Transaction transaction = type == 1
+                        ? new Income(name, date, amount, description)
+                        : new Expense(name, date, amount, description);
+
+                    _transactionService.AddTransaction(transaction);
+                    InputHelper.ShowSuccess($"The {transaction.Type} \"{transaction.Name}\" with amount {transaction.SignedAmount.ToString("0.00")} {_currency} and date {transaction.Date.ToString("yyyy-MM-dd")} was successfully created\n");
+                }
+                // Safety net: the Transaction constructor has the final word on the rules
+                catch (ValidationException e)
+                {
+                    InputHelper.ShowError(e.Message);
+                }
+            }
+        }
+        catch (UserCancelledException)
+        {
+            InputHelper.ShowInfo("Back to main menu");
+        }
+    }
+
     // ---------- TODO: implement the menu items below ----------
 
     // Above the menu: Balance / Incomes / Expenses with currency
@@ -114,25 +151,59 @@ public class ConsoleUI
         InputHelper.ShowInfo($"Balance: 0.00 {_currency} | Incomes: 0.00 {_currency} | Expenses: 0.00 {_currency}");
     }
 
-    // 1: income or expense -> name -> date -> amount -> description (Enter - skip) -> only for expense: category (existing / new / Enter = Uncategorized)
-    private void AddTransaction()
-    {
-        InputHelper.ShowWarning("Add Transaction: not implemented yet");
-    }
-
     // 2: 1-All 2-Incomes 3-Expenses -> all or for a period -> sort field -> ascending/descending -> table.
     // Under the table: Incomes, Expenses and Balance for the shown list.
-    // In the "All" table incomes and expenses are mixed: show the Type column (or "-" / red for expenses).
+    // In the "All" table incomes and expenses are mixed: Amount is positive for incomes and negative for expenses.
+    // Reads 1-3; then call ShowTransactionsByType(...).
     private void ListTransactions()
     {
-        // TODO: read 1-3; then call ListTransactions(null), (TransactionType.Income) or (TransactionType.Expense)
-        InputHelper.ShowWarning("List Transactions: not implemented yet");
+        try
+        {
+            int choice = InputHelper.ReadNumberInRange("1-All 2-Incomes 3-Expenses (q - back to menu): ", 1, 3, "Choice can't be empty", "Please enter 1, 2 or 3");
+            switch (choice)
+            {
+                case 1:
+                    // Shows all transactions because type is null
+                    ShowTransactionsByType(null);
+                    break;
+                case 2:
+                    ShowTransactionsByType(TransactionType.Income);
+                    break;
+                case 3:
+                    ShowTransactionsByType(TransactionType.Expense);
+                    break;
+            }
+        }
+        catch (UserCancelledException)
+        {
+            InputHelper.ShowInfo("Back to main menu");
+        }
     }
 
     // type == null -> all transactions; otherwise only incomes or only expenses
-    private void ListTransactions(TransactionType? type)
+    private void ShowTransactionsByType(TransactionType? type)
     {
-        InputHelper.ShowWarning($"List {(type == null ? "All" : type.ToString())}: not implemented yet");
+        // TODO: period and sorting
+        List<Transaction> transactions;
+        if (type is TransactionType.Income)
+        {
+            transactions = _transactionService.GetAllIncomes();
+        }
+        else if (type is TransactionType.Expense)
+        {
+            transactions = _transactionService.GetAllExpenses();
+        }
+        else
+        {
+            transactions = _transactionService.GetAllTransactions();
+        }
+
+        if (transactions.Count == 0)
+        {
+            InputHelper.ShowWarning("No transactions yet. Choose 1 from the main menu to add a transaction");
+            return;
+        }
+        DisplayTransactionsTable(transactions);
     }
 
     // 3: table -> id -> one scenario for all fields, each shown with its current value:
@@ -208,7 +279,10 @@ public class ConsoleUI
         for (int i = 0; i < cells.Length; i++)
         {
             bool alignRight = rightAlignedColumns.Contains(i);
-            padded[i] = alignRight ? cells[i].PadLeft(widths[i]) : cells[i].PadRight(widths[i]);
+            // Right-aligned: the padding goes after the text too, so the next column doesn't stick to the number
+            padded[i] = alignRight
+                ? cells[i].PadLeft(widths[i] - ColumnPadding) + new string(' ', ColumnPadding)
+                : cells[i].PadRight(widths[i]);
         }
         return string.Join(" ", padded);
     }
@@ -259,51 +333,31 @@ public class ConsoleUI
         catch (DataFileException e) { InputHelper.ShowError(e.Message); }
     }
 
-    // ---------- TODO: tables ----------
-    // Done: ToRow(Transaction), GetCategoryName.
-    // TODO: rework the commented-out draft below into DisplayTransactionsTable, then delete the draft.
-    //   The draft is the old asset table: the headers, FormatRow without the 3rd argument and the status colors still belong to assets.
-    //   headers = { "Id", "Name", "Date", "Amount", "Category", "Description" }; FormatRow(..., new[] { 3 });
-    //   under the table: Incomes, Expenses, Balance for the shown list; no status colors (maybe green incomes, red expenses).
-    // TODO: ToRow(Category) - Id, Name from the category; Total, Count, % from CategoryService.
+    // ---------- Tables ----------
+    // TODO: under the transactions table: Incomes, Expenses, Balance for the shown list.
     // TODO: DisplayCategoriesTable(List<Category> items) - columns Id, Name, Total, Count, %; FormatRow(..., new[] { 2, 3, 4 });
     //   plus a separate "Uncategorized" row for expenses with CategoryId == null.
-    /*
-    // Print Transactions as a table; column width = longest value or header + padding
-    // Rows are colored by end-of-life status: red = 3 months or less left, yellow = 6 months or less
-    private void DisplayTransactionsTable(List<Transaction> Transactions)
+
+    // Print transactions as a table; column width = longest value or header + padding.
+    // Amount (column 3) is aligned to the right.
+    private void DisplayTransactionsTable(List<Transaction> transactions)
     {
-        string[] headers = { "Id", "Type", "Brand", "Model", "Office", "Purchase Date", "Price (USD)", "Local Price" };
-        List<string[]> rows = Transactions.Select(ToRow).ToList(); // List<string[]> rows = categories.Select(c => ToRow(c, expenses)).ToList();
+        string[] headers = { "Id", "Name", "Date", "Amount", "Category", "Description" };
+        int[] rightAlignedColumns = { 3 };
+        List<string[]> rows = transactions.Select(ToRow).ToList();
         int[] widths = GetColumnWidths(headers, rows);
         int tableWidth = widths.Sum() + widths.Length - 1; // + one space between columns
 
         InputHelper.ShowInfo(new string('-', tableWidth));
-        InputHelper.ShowInfo(FormatRow(headers, widths));
+        InputHelper.ShowInfo(FormatRow(headers, widths, rightAlignedColumns));
         InputHelper.ShowInfo(new string('-', tableWidth));
-        foreach (Transaction Transaction in Transactions)
+        foreach (string[] row in rows)
         {
-            // 1. Pick the row color by the Transaction's status today
-            switch (Transaction.GetStatus(DateTime.Today))
-            {
-                case LifeStatus.Red:
-                    Console.ForegroundColor = ConsoleColor.Red;
-                    break;
-                case LifeStatus.Yellow:
-                    Console.ForegroundColor = ConsoleColor.Yellow;
-                    break;
-                    // LifeStatus.Normal: keep the default color
-            }
-
-            // 2. Print the row in that color
-            Console.WriteLine(FormatRow(ToRow(Transaction), widths));
-
-            // 3. Back to the default color for the next row
-            Console.ResetColor();
+            Console.WriteLine(FormatRow(row, widths, rightAlignedColumns));
         }
         InputHelper.ShowInfo(new string('-', tableWidth));
     }
-    */
+
     // One category -> table cells as text; total, count and % are calculated from the given expenses
     private string[] ToRow(Category category, List<Transaction> expenses)
     {

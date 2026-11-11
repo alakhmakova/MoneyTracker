@@ -27,10 +27,19 @@ public class TransactionService
         _transactions.Add(transaction);
     }
 
+    // Lists
     // All transactions sorted by id (also used for saving)
     public List<Transaction> GetAllTransactions()
     {
         return _transactions.OrderBy(t => t.Id).ToList();
+    }
+    public List<Transaction> GetAllIncomes()
+    {
+        return _transactions.Where(t => t is Income).ToList();
+    }
+    public List<Transaction> GetAllExpenses()
+    {
+        return _transactions.Where(t => t is Expense).ToList();
     }
 
     // Throw TransactionNotFoundException if there is no transaction with this id
@@ -66,10 +75,6 @@ public class TransactionService
     }
 
     // ---------- TODO: implement the methods below ----------
-
-    // Lists
-    public List<Transaction> GetAllIncomes() => throw new NotImplementedException();
-    public List<Transaction> GetAllExpenses() => throw new NotImplementedException();
     public List<Transaction> GetIncomesForThePeriod(DateTime from, DateTime to) => throw new NotImplementedException();
     public List<Transaction> GetExpensesForThePeriod(DateTime from, DateTime to) => throw new NotImplementedException();
     public List<Transaction> GetTransactionsForThePeriod(DateTime from, DateTime to) => throw new NotImplementedException(); // menu 2 "All"
