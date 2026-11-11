@@ -127,7 +127,7 @@ public class ConsoleUI
                         : new Expense(name, date, amount, description);
 
                     _transactionService.AddTransaction(transaction);
-                    InputHelper.ShowSuccess($"The {transaction.Type} \"{transaction.Name}\" with amount {transaction.SignedAmount.ToString("0.00")} {_currency} and date {transaction.Date.ToString("yyyy-MM-dd")} was successfully created\n");
+                    ShowTransactionSuccess(transaction, "created");
                 }
                 // Safety net: the Transaction constructor has the final word on the rules
                 catch (ValidationException e)
@@ -252,7 +252,7 @@ public class ConsoleUI
                         string? description = InputHelper.ReadOptionalTextOrKeep($"Description [{transaction.Description}] (max {Transaction.MaxDescriptionLength} characters, Enter - keep, - to clear, q - cancel): ", transaction.Description, Transaction.MaxDescriptionLength, $"Transaction description can't be longer than {Transaction.MaxDescriptionLength} characters.");
 
                         _transactionService.UpdateTransaction(id, name, date, amount, description);
-                        InputHelper.ShowSuccess($"The {transaction.Type} \"{transaction.Name}\" with amount {transaction.SignedAmount:0.00} {_currency} and date {transaction.Date:yyyy-MM-dd} was successfully edited\n");
+                        ShowTransactionSuccess(transaction, "edited");
                     }
                     else
                     {
@@ -276,13 +276,57 @@ public class ConsoleUI
         }
     }
 
-    // ---------- TODO: implement the menu items below ----------
-
     // 4: id -> show the transaction -> "will be deleted y/n"
     private void DeleteTransaction()
     {
-        InputHelper.ShowWarning("Delete Transaction: not implemented yet");
+        if (!_transactionService.HasTransactions)
+        {
+            InputHelper.ShowWarning("No transactions to remove yet. Add a transaction first.");
+            return;
+        }
+
+        ShowHeader("Remove transaction | Enter q at any step to cancel");
+        try
+        {
+            // Stop when there is nothing left to remove
+            while (_transactionService.HasTransactions)
+            {
+                try
+                {
+                    int id = InputHelper.ReadId("Enter transaction id to remove (q - back to menu): ", "Transaction id can't be empty", "Transaction id must be a whole number greater than 0");
+                    Transaction transaction = _transactionService.GetTransactionById(id);
+                    DisplayTransactionsTable(new List<Transaction> { transaction });
+                    if (InputHelper.ReadYesNo("Remove this transaction? (y/n): ", "Answer can't be empty", "Please enter y or n"))
+                    {
+                        _transactionService.DeleteTransaction(id);
+                        ShowTransactionSuccess(transaction, "removed");
+                    }
+                    else
+                    {
+                        InputHelper.ShowWarning("The transaction was not removed.\n");
+                    }
+                }
+                catch (TransactionNotFoundException e)
+                {
+                    InputHelper.ShowWarning(e.Message);
+                }
+            }
+            InputHelper.ShowWarning("No transactions left to remove.");
+        }
+        catch (UserCancelledException)
+        {
+            InputHelper.ShowInfo("Back to main menu");
+        }
     }
+
+    // Success message after Add, Edit and Remove; action: "created", "edited" or "removed"
+    private void ShowTransactionSuccess(Transaction transaction, string action)
+    {
+        string type = transaction.Type.ToString().ToLower(); // "income" or "expense"
+        InputHelper.ShowSuccess($"The {type} \"{transaction.Name}\" with amount {transaction.Amount:0.00} {_currency} and date {transaction.Date:yyyy-MM-dd} was successfully {action}\n");
+    }
+
+    // ---------- TODO: implement the menu items below ----------
 
     // 5: category name (all categories are expense categories)
     private void CreateCategory()
