@@ -43,6 +43,20 @@ public class TransactionService
         return _transactions.Where(t => t is Expense).ToList();
     }
 
+    // type == null -> all transactions; Income -> only incomes; Expense -> only expenses
+    public List<Transaction> GetTransactionsByType(TransactionType? type)
+    {
+        if (type is TransactionType.Income)
+        {
+            return GetAllIncomes();
+        }
+        if (type is TransactionType.Expense)
+        {
+            return GetAllExpenses();
+        }
+        return GetAllTransactions();
+    }
+
     // Throw TransactionNotFoundException if there is no transaction with this id
     public Transaction GetTransactionById(int id)
     {
@@ -112,10 +126,39 @@ public class TransactionService
         return transaction;
     }
 
-    // ---------- TODO: implement the methods below ----------
-    public List<Transaction> GetIncomesForThePeriod(DateTime from, DateTime to) => throw new NotImplementedException();
-    public List<Transaction> GetExpensesForThePeriod(DateTime from, DateTime to) => throw new NotImplementedException();
-    public List<Transaction> GetTransactionsForThePeriod(DateTime from, DateTime to) => throw new NotImplementedException();
+    // Period: transactions from items with from <= Date <= to (both days included)
+    public List<Transaction> FilterByPeriod(List<Transaction> items, DateTime from, DateTime to)
+    {
+        return items.Where(i => i.Date >= from && i.Date <= to).ToList();
+    }
+
+    // Period: date of the first and the last transaction in items (hint before the user enters the dates).
+    // Throws ArgumentException if items is empty: without this check Min/Max would throw
+    // InvalidOperationException ("Sequence contains no elements"), which doesn't say what went wrong
+    public DateTime StartOfPeriod(List<Transaction> items)
+    {
+        if (items.Count == 0)
+        {
+            throw new ArgumentException("Transactions can't be empty", nameof(items));
+        }
+        return items.Min(i => i.Date);
+    }
+
+    public DateTime EndOfPeriod(List<Transaction> items)
+    {
+        if (items.Count == 0)
+        {
+            throw new ArgumentException("Transactions can't be empty", nameof(items));
+        }
+        return items.Max(i => i.Date);
+    }
+
+    // true if from <= to (the same date twice = one day).
+    // Dates are NOT limited to StartOfPeriod..EndOfPeriod; empty result -> "No transactions for this period"
+    public bool ValidateDateRange(DateTime from, DateTime to)
+    {
+        return from <= to;
+    }
 
     // Puts the expenses with the given ids into the category; categoryId == null -> Uncategorized.
     // All ids are checked first, so the category is set for all expenses or for none of them.
@@ -138,24 +181,57 @@ public class TransactionService
         }
     }
 
+    // Sort: take a list (all incomes, or incomes for a period...) and return it sorted.
+    // descending = false -> A-Z / oldest first / smallest first; true -> the other way (teacher requirement)
+    public List<Transaction> SortByDate(List<Transaction> items, bool descending)
+    {
+        if (descending)
+        {
+            return items.OrderByDescending(i => i.Date).ToList();
+        }
+        return items.OrderBy(i => i.Date).ToList();
+    }
+
+    // By Amount (always positive), not SignedAmount: "largest" means the biggest sum of money,
+    // so in the expenses table the biggest expense (-8200.00) comes first, not the smallest one (-45.00)
+    public List<Transaction> SortByAmount(List<Transaction> items, bool descending)
+    {
+        if (descending)
+        {
+            return items.OrderByDescending(i => i.Amount).ToList();
+        }
+        return items.OrderBy(i => i.Amount).ToList();
+    }
+
+    public List<Transaction> SortByName(List<Transaction> items, bool descending)
+    {
+        if (descending)
+        {
+            return items.OrderByDescending(i => i.Name).ToList();
+        }
+        return items.OrderBy(i => i.Name).ToList();
+    }
+
+    public List<Transaction> SortById(List<Transaction> items, bool descending)
+    {
+        if (descending)
+        {
+            return items.OrderByDescending(i => i.Id).ToList();
+        }
+        return items.OrderBy(i => i.Id).ToList();
+    }
+
+    // ---------- TODO: implement the methods below ----------
+
     // Search
     public List<Expense> SearchByCategory(int? categoryId) => throw new NotImplementedException(); // only expenses have categories
     public List<Transaction> SearchByDateRange(DateTime from, DateTime to) => throw new NotImplementedException(); // BONUS: not in the menu yet
     public List<Transaction> SearchByName(string text) => throw new NotImplementedException();                   // BONUS: not in the menu yet
     public List<Transaction> SearchByAmountRange(decimal min, decimal max) => throw new NotImplementedException(); // BONUS: not in the menu yet
 
-    // Sort: take a list (all incomes, or incomes for a period...) and return it sorted.
-    // descending = false -> A-Z / oldest first / smallest first; true -> the other way (teacher requirement)
-    public List<Transaction> SortById(List<Transaction> items, bool descending) => throw new NotImplementedException();
-    public List<Transaction> SortByName(List<Transaction> items, bool descending) => throw new NotImplementedException();
-    public List<Transaction> SortByCategory(List<Transaction> items, bool descending) => throw new NotImplementedException(); // incomes have no category: put them first or last
-    public List<Transaction> SortByDate(List<Transaction> items, bool descending) => throw new NotImplementedException();
-    public List<Transaction> SortByAmount(List<Transaction> items, bool descending) => throw new NotImplementedException();
-
-    // Period: date of the first and the last transaction
-    public DateTime StartOfPeriod() => throw new NotImplementedException();
-    public DateTime EndOfPeriod() => throw new NotImplementedException();
-
-    // true if from <= to (dates are NOT limited to StartOfPeriod..EndOfPeriod; empty result -> "No transactions for this period")
-    public bool ValidateDateRange(DateTime from, DateTime to) => throw new NotImplementedException();
+    // Sort (BONUS): not in the menu yet
+    public List<Transaction> SortByCategory(List<Transaction> items, bool descending)
+    {
+        return items;
+    }
 }

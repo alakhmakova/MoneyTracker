@@ -3,7 +3,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using MoneyTracker.Models;
 
-namespace MoneyTracker.Services;
+namespace MoneyTracker.Data;
 
 // Saves all data to a JSON file and loads it back; turns file errors into DataFileException
 public class MoneyFileStorage

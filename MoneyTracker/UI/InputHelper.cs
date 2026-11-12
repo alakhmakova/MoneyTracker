@@ -156,27 +156,6 @@ public static class InputHelper
         return true;
     }
 
-    // Ask until the user enters a valid currency; returns it in upper case ("sek" -> "SEK").
-    // No "q" here: the currency is required
-    public static string ReadCurrency(string prompt, string emptyInputMessage, string invalidCurrencyMessage)
-    {
-        while (true)
-        {
-            string userInput = ReadText(prompt, emptyInputMessage); // ReadText already trims
-            if (IsValidCurrency(userInput))
-            {
-                return userInput.ToUpper();
-            }
-            ShowError(invalidCurrencyMessage);
-        }
-    }
-
-    // true if the text is exactly 3 Latin letters (SEK, usd, Eur...)
-    public static bool IsValidCurrency(string text)
-    {
-        return text.Length == 3 && text.All(char.IsAsciiLetter);
-    }
-
     // Like ReadTextOrCancel, but empty input means "skip" and returns null;
     // asks again while the text is longer than maxLength
     // Ask until the answer is y/yes (true) or n/no (false)
@@ -254,7 +233,7 @@ public static class InputHelper
         }
     }
 
-    // Used by Edit: Enter keeps currentValue; "q" cancels; asks again until the date has the format yyyy-MM-dd
+    // Used by Edit and by the period end date: Enter keeps currentValue; "q" cancels; asks again until the date has the format yyyy-MM-dd
     // and is not in the future (Transaction.IsValidDate)
     public static DateTime ReadDateOrKeep(string prompt, DateTime currentValue, string invalidDateMessage)
     {
