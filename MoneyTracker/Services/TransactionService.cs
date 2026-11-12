@@ -182,14 +182,15 @@ public class TransactionService
     }
 
     // Sort: take a list (all incomes, or incomes for a period...) and return it sorted.
-    // descending = false -> A-Z / oldest first / smallest first; true -> the other way (teacher requirement)
+    // descending = false -> A-Z / oldest first / smallest first; true -> the other way (teacher requirement).
+    // ThenBy: order of the transactions with the same value (same date -> by id; same amount or name -> by date, oldest first)
     public List<Transaction> SortByDate(List<Transaction> items, bool descending)
     {
         if (descending)
         {
-            return items.OrderByDescending(i => i.Date).ToList();
+            return items.OrderByDescending(i => i.Date).ThenBy(i => i.Id).ToList();
         }
-        return items.OrderBy(i => i.Date).ToList();
+        return items.OrderBy(i => i.Date).ThenBy(i => i.Id).ToList();
     }
 
     // By Amount (always positive), not SignedAmount: "largest" means the biggest sum of money,
@@ -198,18 +199,18 @@ public class TransactionService
     {
         if (descending)
         {
-            return items.OrderByDescending(i => i.Amount).ToList();
+            return items.OrderByDescending(i => i.Amount).ThenBy(i => i.Date).ToList();
         }
-        return items.OrderBy(i => i.Amount).ToList();
+        return items.OrderBy(i => i.Amount).ThenBy(i => i.Date).ToList();
     }
 
     public List<Transaction> SortByName(List<Transaction> items, bool descending)
     {
         if (descending)
         {
-            return items.OrderByDescending(i => i.Name).ToList();
+            return items.OrderByDescending(i => i.Name).ThenBy(i => i.Date).ToList();
         }
-        return items.OrderBy(i => i.Name).ToList();
+        return items.OrderBy(i => i.Name).ThenBy(i => i.Date).ToList();
     }
 
     public List<Transaction> SortById(List<Transaction> items, bool descending)
@@ -228,10 +229,4 @@ public class TransactionService
     public List<Transaction> SearchByDateRange(DateTime from, DateTime to) => throw new NotImplementedException(); // BONUS: not in the menu yet
     public List<Transaction> SearchByName(string text) => throw new NotImplementedException();                   // BONUS: not in the menu yet
     public List<Transaction> SearchByAmountRange(decimal min, decimal max) => throw new NotImplementedException(); // BONUS: not in the menu yet
-
-    // Sort (BONUS): not in the menu yet
-    public List<Transaction> SortByCategory(List<Transaction> items, bool descending)
-    {
-        return items;
-    }
 }

@@ -99,7 +99,32 @@ public class CategoryService
         return GetTotal(categoryId, expenses) / allExpensesTotal;
     }
 
-        // ---------- TODO: implement the methods below ----------
+    // Sort by category name (A-Z, or Z-A if descending), "Uncategorized" for expenses without a category;
+    // inside one category: by date, oldest first.
+    // Incomes have no category: they always come after the expenses, sorted by id
+    public List<Transaction> SortByCategory(List<Transaction> items, bool descending)
+    {
+        IEnumerable<Expense> expenses = items.OfType<Expense>();
+        IEnumerable<Income> incomes = items.OfType<Income>().OrderBy(i => i.Id);
+
+        IOrderedEnumerable<Expense> sortedExpenses = descending
+            ? expenses.OrderByDescending(e => GetCategoryName(e.CategoryId))
+            : expenses.OrderBy(e => GetCategoryName(e.CategoryId));
+
+        List<Transaction> sorted = new();
+        sorted.AddRange(sortedExpenses.ThenBy(e => e.Date));
+        sorted.AddRange(incomes);
+        return sorted;
+    }
+
+    // Category name for sorting; categoryId == null (or a category that no longer exists) -> "Uncategorized"
+    private string GetCategoryName(int? categoryId)
+    {
+        Category? category = _categories.FirstOrDefault(c => c.Id == categoryId);
+        return category?.Name ?? "Uncategorized";
+    }
+
+    // ---------- TODO: implement the methods below ----------
 
     // Search and sort
     public List<Category> SearchByName(string text) => throw new NotImplementedException();

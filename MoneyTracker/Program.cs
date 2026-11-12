@@ -11,7 +11,7 @@ MoneyDataService dataService = new(storage, transactionService, categoryService)
 TablePrinter tablePrinter = new(categoryService);
 
 ConsoleMessages messages = new(transactionService, dataService);
-TransactionMenu transactionMenu = new(transactionService, tablePrinter, messages);
+TransactionMenu transactionMenu = new(transactionService, categoryService, tablePrinter, messages);
 CategoryMenu categoryMenu = new(transactionService, categoryService, tablePrinter, messages);
 
 ConsoleUI console = new(transactionService, dataService, messages, transactionMenu, categoryMenu);

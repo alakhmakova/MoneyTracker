@@ -5,16 +5,18 @@ using MoneyTracker.Services;
 namespace MoneyTracker.UI;
 
 // Menu items 1-4: add, list (period and sorting), edit and remove transactions.
-// Asks the user, calls TransactionService, shows the result in tables (TablePrinter) and messages (ConsoleMessages)
+// Asks the user, calls TransactionService (and CategoryService for sorting by category), shows the result in tables (TablePrinter) and messages (ConsoleMessages)
 public class TransactionMenu
 {
     private readonly TransactionService _transactionService;
+    private readonly CategoryService _categoryService;
     private readonly TablePrinter _tablePrinter;
     private readonly ConsoleMessages _messages;
 
-    public TransactionMenu(TransactionService transactionService, TablePrinter tablePrinter, ConsoleMessages messages)
+    public TransactionMenu(TransactionService transactionService, CategoryService categoryService, TablePrinter tablePrinter, ConsoleMessages messages)
     {
         _transactionService = transactionService;
+        _categoryService = categoryService; // SortByCategory: needs the category names
         _tablePrinter = tablePrinter;
         _messages = messages;
     }
@@ -133,14 +135,17 @@ public class TransactionMenu
         return _transactionService.SortById(transactions, false);
     }
 
-    // Ask the sort field (1-Date 2-Amount 3-Name) and the order (1-Ascending 2-Descending), show the table again;
+    // Ask the sort field (1-Date 2-Amount 3-Name, 4-Category only when the table has the Category column) and the order (1-Ascending 2-Descending), show the table again;
     // repeat until the user enters q (UserCancelledException -> ListTransactions shows "Back to main menu").
     // footer and showCategory: the same as in the first table (sorting doesn't change the totals)
     private void SortTransactionsByChosenOrder(List<Transaction> transactions, string footer, bool showCategory)
     {
         while (true)
         {
-            int field = InputHelper.ReadNumberInRange("Sort by 1-Date 2-Amount 3-Name (q - back to menu): ", 1, 3, "Choice can't be empty", "Please enter 1, 2 or 3");
+            // Incomes table has no Category column -> no "4-Category"
+            int field = showCategory
+                ? InputHelper.ReadNumberInRange("Sort by 1-Date 2-Amount 3-Name 4-Category (q - back to menu): ", 1, 4, "Choice can't be empty", "Please enter 1, 2, 3 or 4")
+                : InputHelper.ReadNumberInRange("Sort by 1-Date 2-Amount 3-Name (q - back to menu): ", 1, 3, "Choice can't be empty", "Please enter 1, 2 or 3");
             int order = InputHelper.ReadNumberInRange("1-Ascending (oldest, smallest, A-Z) 2-Descending (newest, largest, Z-A) (q - back to menu): ", 1, 2, "Choice can't be empty", "Please enter 1 or 2");
             bool descending = order == 2;
             if (field == 1)
@@ -151,9 +156,14 @@ public class TransactionMenu
             {
                 transactions = _transactionService.SortByAmount(transactions, descending);
             }
-            else
+            else if (field == 3)
             {
                 transactions = _transactionService.SortByName(transactions, descending);
+            }
+            else
+            {
+                // Expenses grouped by category name, incomes after them
+                transactions = _categoryService.SortByCategory(transactions, descending);
             }
             _tablePrinter.DisplayTransactionsTable(transactions, footer, showCategory);
         }

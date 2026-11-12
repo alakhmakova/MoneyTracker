@@ -80,7 +80,8 @@ public class CategoryMenu
                     }
                     if (InputHelper.ReadYesNo($"Add expenses to the category \"{categoryName}\"? (y/n): ", "Answer can't be empty", "Please enter y or n"))
                     {
-                        _tablePrinter.DisplayTransactionsTable(_transactionService.GetAllExpenses());
+                        // Grouped by category, so it is easy to see which expenses are already in which category
+                        _tablePrinter.DisplayTransactionsTable(_categoryService.SortByCategory(_transactionService.GetAllExpenses(), false));
                         while (true)
                         {
                             try
