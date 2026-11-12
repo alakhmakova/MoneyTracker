@@ -133,10 +133,11 @@ public class CategoryMenu
                 try
                 {
                     // Uncategorized is not a real category, it can't be removed -> not shown
-                    _tablePrinter.DisplayCategoriesTable(_categoryService.GetAllCategories(), _transactionService.GetAllExpenses(), false);
+                    List<Transaction> expenses = _transactionService.GetAllExpenses();
+                    _tablePrinter.DisplayCategoriesTable(_categoryService.GetAllCategories(), expenses, false);
                     int id = InputHelper.ReadId("Enter category id to remove (q - back to menu): ", "Category id can't be empty", "Category id must be a whole number greater than 0");
                     Category category = _categoryService.GetCategoryById(id);
-                    int expensesCount = _categoryService.GetNumberOfTransactions(id, _transactionService.GetAllExpenses());
+                    int expensesCount = _categoryService.GetNumberOfTransactions(id, expenses);
                     if (InputHelper.ReadYesNo($"Remove the category \"{category.Name}\"? Its expenses ({expensesCount}) will become Uncategorized (y/n): ", "Answer can't be empty", "Please enter y or n"))
                     {
                         _transactionService.RemoveCategoryFromExpenses(id);

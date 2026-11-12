@@ -34,13 +34,15 @@ public class TransactionService
     {
         return _transactions.OrderBy(t => t.Id).ToList();
     }
+    // Only incomes / only expenses, sorted by id like GetAllTransactions.
+    // Where (not OfType<Income>) keeps the type Transaction, so the result is List<Transaction> without Cast
     public List<Transaction> GetAllIncomes()
     {
-        return _transactions.Where(t => t is Income).ToList();
+        return _transactions.Where(t => t is Income).OrderBy(t => t.Id).ToList();
     }
     public List<Transaction> GetAllExpenses()
     {
-        return _transactions.Where(t => t is Expense).ToList();
+        return _transactions.Where(t => t is Expense).OrderBy(t => t.Id).ToList();
     }
 
     // type == null -> all transactions; Income -> only incomes; Expense -> only expenses
@@ -213,15 +215,6 @@ public class TransactionService
         return items.OrderBy(i => i.Name).ThenBy(i => i.Date).ToList();
     }
 
-    public List<Transaction> SortById(List<Transaction> items, bool descending)
-    {
-        if (descending)
-        {
-            return items.OrderByDescending(i => i.Id).ToList();
-        }
-        return items.OrderBy(i => i.Id).ToList();
-    }
-
     // Search: expenses of the category, sorted by date (oldest first); categoryId == null -> expenses without a category (Uncategorized).
     // Only expenses have categories. Returns List<Transaction>, so the result can be shown with TablePrinter.DisplayTransactionsTable
     public List<Transaction> SearchByCategory(int? categoryId)
@@ -234,11 +227,4 @@ public class TransactionService
             .Cast<Transaction>()                    // List<Expense> can't be passed where List<Transaction> is expected
             .ToList();
     }
-
-    // ---------- TODO: implement the methods below ----------
-
-    // Search
-    public List<Transaction> SearchByDateRange(DateTime from, DateTime to) => throw new NotImplementedException(); // BONUS: not in the menu yet
-    public List<Transaction> SearchByName(string text) => throw new NotImplementedException();                   // BONUS: not in the menu yet
-    public List<Transaction> SearchByAmountRange(decimal min, decimal max) => throw new NotImplementedException(); // BONUS: not in the menu yet
 }

@@ -122,7 +122,7 @@ public class TransactionMenu
     }
 
     // Ask 1-All time or 2-Period and return the list in its default order:
-    // all time -> all given transactions sorted by id; period -> only the transactions of the period, sorted by date, oldest first.
+    // all time -> all given transactions as they are (TransactionService already returns them sorted by id); period -> only the transactions of the period, sorted by date, oldest first.
     // The result can be empty (no transactions in the period)
     private List<Transaction> AskTimeRangeAndApply(List<Transaction> transactions)
     {
@@ -132,7 +132,7 @@ public class TransactionMenu
             List<Transaction> periodTransactions = FilterTransactionsByChosenPeriod(transactions);
             return _transactionService.SortByDate(periodTransactions, false);
         }
-        return _transactionService.SortById(transactions, false);
+        return transactions;
     }
 
     // Ask the sort field (1-Date 2-Amount 3-Name, 4-Category only when the table has the Category column) and the order (1-Ascending 2-Descending), show the table again;
@@ -196,8 +196,7 @@ public class TransactionMenu
 
     // 3: id -> show the transaction -> y/n -> each field with its current value:
     //    "Name [ICA]: " ... Enter = keep current value, q = cancel.
-    //    Fields: Name, Date, Amount, Description.
-    //    TODO: Category for expenses (id, or 0 = Uncategorized) when categories are ready.
+    //    Fields: Name, Date, Amount, Description. The category of an expense is changed in menu item 6.
     public void EditTransaction()
     {
         if (!_transactionService.HasTransactions)

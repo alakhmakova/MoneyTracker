@@ -3,7 +3,7 @@ using MoneyTracker.Models;
 
 namespace MoneyTracker.Services;
 
-// Holds the category list: add, list, search, sort, statistics.
+// Holds the category list: add, list, delete, statistics, sorting transactions by category.
 // Statistics are calculated from the list of expenses passed to each method
 // Does not print anything; errors are reported with exceptions.
 public class CategoryService
@@ -91,7 +91,7 @@ public class CategoryService
     // Returns 0 if the expenses total is 0 (nothing to divide by)
     public decimal CalculatePercentage(int? categoryId, List<Transaction> expenses)
     {
-        decimal allExpensesTotal = expenses.Sum(e => e.Amount);
+        decimal allExpensesTotal = expenses.OfType<Expense>().Sum(e => e.Amount); // incomes are not counted, like in GetTotal
         if (allExpensesTotal <= 0)
         {
             return 0;
@@ -123,11 +123,4 @@ public class CategoryService
         Category? category = _categories.FirstOrDefault(c => c.Id == categoryId);
         return category?.Name ?? "Uncategorized";
     }
-
-    // ---------- TODO: implement the methods below ----------
-
-    // Search and sort
-    public List<Category> SearchByName(string text) => throw new NotImplementedException();
-    public List<Category> SortByName(List<Category> items, bool descending) => throw new NotImplementedException();
-    public List<Category> SortById(List<Category> items, bool descending) => throw new NotImplementedException();
 }
