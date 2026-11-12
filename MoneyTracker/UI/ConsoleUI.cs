@@ -44,9 +44,10 @@ public class ConsoleUI
                 Console.WriteLine("6-Add Transactions to the Category");
                 Console.WriteLine("7-Display All Categories Statistics");
                 Console.WriteLine("8-Display Statistics by Category");
+                Console.WriteLine("9-Delete Category");
                 Console.WriteLine("0-Quit");
 
-                string menuOption = InputHelper.ReadText("Select Option 0-8: ", "Menu option can't be empty");
+                string menuOption = InputHelper.ReadText("Select Option 0-9: ", "Menu option can't be empty");
 
                 switch (menuOption)
                 {
@@ -79,12 +80,16 @@ public class ConsoleUI
                     case "8":
                         DisplayStatisticsByCategory();
                         break;
+                    case "9":
+                        DeleteCategory();
+                        SaveToFile();
+                        break;
                     case "0":
                         InputHelper.ShowInfo("Thank you for using Money Tracker");
                         run = false;
                         break;
                     default:
-                        InputHelper.ShowError("Invalid menu option. Select 0-8.");
+                        InputHelper.ShowError("Invalid menu option. Select 0-9.");
                         break;
                 }
             }
@@ -356,20 +361,130 @@ public class ConsoleUI
         }
         catch (UserCancelledException)
         {
+            ShowHeader("Add expenses to a category | Enter q at any step to cancel");
+
+        }
+    }
+
+    // 6: categories table -> category id (0 - Uncategorized) -> y/n -> expense ids "12, 15, 20" -> all of them get the category.
+    // Unknown category or expense id -> message and ask again; q -> back to the main menu
+    private void AddTransactionsToCategory()
+    {
+        if (!_categoryService.HasCategories)
+        {
+            InputHelper.ShowWarning("No categories yet. Create a category first (main menu 5).");
+            return;
+        }
+        try
+        {
+            while (true)
+            {
+                // Uncategorized is shown: 0 moves the expenses out of their category
+                DisplayCategoriesTable(_categoryService.GetAllCategories(), true);
+                try
+                {
+                    string categoryName;
+                    int? categoryId = InputHelper.ReadNumberInRange("Enter category id (0 - Uncategorized, q - back to menu): ", 0, int.MaxValue, "Category id can't be empty", "Category id must be a whole number");
+                    if (categoryId > 0)
+                    {
+                        Category category = _categoryService.GetCategoryById(categoryId.Value);
+                        categoryName = category.Name;
+                    }
+                    else
+                    {
+                        categoryId = null;
+                        categoryName = "Uncategorized";
+                    }
+                    if (InputHelper.ReadYesNo($"Add expenses to the category \"{categoryName}\"? (y/n): ", "Answer can't be empty", "Please enter y or n"))
+                    {
+                        DisplayTransactionsTable(_transactionService.GetAllExpenses());
+                        while (true)
+                        {
+                            try
+                            {
+                                List<int> transactionIds = InputHelper.ReadIds("Enter expense ids separated by commas, e.g. 12, 15, 20 (q - cancel): ", "Expense ids list can't be empty", "Enter whole numbers greater than 0, separated by commas, e.g. 12, 15, 20");
+                                _transactionService.AddTransactionsToCategory(transactionIds, categoryId);
+                                InputHelper.ShowSuccess($"Expenses added to the category \"{categoryName}\": {transactionIds.Count}\n");
+                                break;
+                            }
+                            catch (TransactionNotFoundException e)
+                            {
+                                InputHelper.ShowWarning(e.Message);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        InputHelper.ShowWarning($"Expenses were not added to the category \"{categoryName}\"\n");
+                    }
+                }
+                catch (CategoryNotFoundException e)
+                {
+                    InputHelper.ShowWarning(e.Message);
+                }
+            }
+        }
+        catch (UserCancelledException)
+        {
             InputHelper.ShowInfo("Back to main menu");
         }
     }
 
-    // 6: category -> several transaction ids at once
-    private void AddTransactionsToCategory()
+    // 9: categories table -> id -> "Remove the category? Its expenses will become Uncategorized" y/n.
+    // The expenses are not deleted: they only lose the category
+    private void DeleteCategory()
     {
-        InputHelper.ShowWarning("Add Transactions to the Category: not implemented yet");
+        if (!_categoryService.HasCategories)
+        {
+            InputHelper.ShowWarning("No categories to remove yet. Create a category first (main menu 5).");
+            return;
+        }
+
+        ShowHeader("Remove category | Enter q at any step to cancel");
+        try
+        {
+            // Stop when there is nothing left to remove
+            while (_categoryService.HasCategories)
+            {
+                try
+                {
+                    // Uncategorized is not a real category, it can't be removed -> not shown
+                    DisplayCategoriesTable(_categoryService.GetAllCategories(), false);
+                    int id = InputHelper.ReadId("Enter category id to remove (q - back to menu): ", "Category id can't be empty", "Category id must be a whole number greater than 0");
+                    Category category = _categoryService.GetCategoryById(id);
+                    int expensesCount = _categoryService.GetNumberOfTransactions(id, _transactionService.GetAllExpenses());
+                    if (InputHelper.ReadYesNo($"Remove the category \"{category.Name}\"? Its expenses ({expensesCount} {_currency}) will become Uncategorized (y/n): ", "Answer can't be empty", "Please enter y or n"))
+                    {
+                        _transactionService.RemoveCategoryFromExpenses(id);
+                        _categoryService.DeleteCategory(id);
+                        ShowCategorySuccess(category, "removed");
+                    }
+                    else
+                    {
+                        InputHelper.ShowWarning("The category was not removed.\n");
+                    }
+                }
+                catch (CategoryNotFoundException e)
+                {
+                    InputHelper.ShowWarning(e.Message + "\n"); // empty line before the table
+                }
+            }
+            InputHelper.ShowWarning("No categories left to remove.");
+        }
+        catch (UserCancelledException)
+        {
+            InputHelper.ShowInfo("Back to main menu");
+        }
     }
 
     // 7: category table (total, count, percent of all expenses) + "Uncategorized" row
     private void DisplayAllCategoriesStatistics()
     {
-        InputHelper.ShowWarning("All Categories Statistics: not implemented yet");
+        List<Category> categories = _categoryService.GetAllCategories();
+        foreach (Category category in categories)
+        {
+            Console.WriteLine(category.Name);
+        }
     }
 
     // 8: find a category by id or name -> its table
@@ -468,8 +583,44 @@ public class ConsoleUI
     }
 
     // ---------- Tables ----------
-    // TODO: DisplayCategoriesTable(List<Category> items) - columns Id, Name, Total, Count, %; FormatRow(..., new[] { 2, 3, 4 });
-    //   plus a separate "Uncategorized" row for expenses with CategoryId == null.
+
+    // Print categories as a table: Id, Name, Total, Count, % of all expenses.
+    // showUncategorized: add the last row "Uncategorized" (id 0) with the expenses without a category.
+    // Total, Count and % (columns 2, 3, 4) are aligned to the right.
+    // footer (optional): text under the table, aligned to its right edge (e.g. total of all expenses)
+    private void DisplayCategoriesTable(List<Category> categories, bool showUncategorized, string? footer = null)
+    {
+        List<Transaction> expenses = _transactionService.GetAllExpenses();
+        string[] headers = { "Id", "Name", "Total", "Count", "%" };
+        int[] rightAlignedColumns = { 2, 3, 4 };
+        List<string[]> rows = categories.Select(c => ToRow(c, expenses)).ToList();
+        if (showUncategorized)
+        {
+            rows.Add(new[]
+            {
+                "0",
+                "Uncategorized",
+                _categoryService.GetTotal(null, expenses).ToString("0.00"),
+                _categoryService.GetNumberOfTransactions(null, expenses).ToString(),
+                _categoryService.CalculatePercentage(null, expenses).ToString("P2"),
+            });
+        }
+        int[] widths = GetColumnWidths(headers, rows);
+        int tableWidth = widths.Sum() + widths.Length - 1; // + one space between columns
+
+        InputHelper.ShowInfo(new string('-', tableWidth));
+        InputHelper.ShowInfo(FormatRow(headers, widths, rightAlignedColumns));
+        InputHelper.ShowInfo(new string('-', tableWidth));
+        foreach (string[] row in rows)
+        {
+            Console.WriteLine(FormatRow(row, widths, rightAlignedColumns));
+        }
+        InputHelper.ShowInfo(new string('-', tableWidth));
+        if (footer != null)
+        {
+            InputHelper.ShowInfo(footer.PadLeft(tableWidth));
+        }
+    }
 
     // Print transactions as a table; column width = longest value or header + padding.
     // Amount (column 3) is aligned to the right.
@@ -505,7 +656,7 @@ public class ConsoleUI
             category.Name,
             _categoryService.GetTotal(category.Id, expenses).ToString("0.00"),
             _categoryService.GetNumberOfTransactions(category.Id, expenses).ToString(),
-            _categoryService.CalculatePercentage(category.Id, expenses).ToString("P1"), // ToString("0.00") + " %"
+            _categoryService.CalculatePercentage(category.Id, expenses).ToString("P2"), // 2 decimals: 14.29%; rounded parts may sum to 99.99% or 100.01%
         };
     }
     // One transaction -> table cells as text (ToRow(Category) is an overload of this method)

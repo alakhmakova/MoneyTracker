@@ -61,6 +61,15 @@ public class TransactionService
         _transactions.Remove(GetTransactionById(id));
     }
 
+    // Make all expenses of this category Uncategorized; called before the category is removed
+    public void RemoveCategoryFromExpenses(int categoryId)
+    {
+        foreach (Expense expense in _transactions.OfType<Expense>().Where(e => e.CategoryId == categoryId))
+        {
+            expense.SetCategory(null);
+        }
+    }
+
     // Replaces the list with the loaded transactions and restores the id counter.
     // Throws ArgumentNullException if transactions is null
     public void LoadData(List<Transaction> transactions, int savedNextId)
@@ -108,9 +117,26 @@ public class TransactionService
     public List<Transaction> GetExpensesForThePeriod(DateTime from, DateTime to) => throw new NotImplementedException();
     public List<Transaction> GetTransactionsForThePeriod(DateTime from, DateTime to) => throw new NotImplementedException();
 
-    // Menu 6 and Edit: put one or several expenses into a category; null = Uncategorized.
-    // TODO: what if an id belongs to an income? (skip it and report, or ValidationException)
-    public void AddTransactionsToCategory(List<int> ids, int? categoryId) => throw new NotImplementedException();
+    // Puts the expenses with the given ids into the category; categoryId == null -> Uncategorized.
+    // All ids are checked first, so the category is set for all expenses or for none of them.
+    // If any expense id is not found, TransactionNotFoundException is thrown and nothing is changed
+    public void AddTransactionsToCategory(List<int> ids, int? categoryId)
+    {
+        List<Expense> expenses = new();
+        foreach (int id in ids)
+        {
+            Expense? expense = _transactions.OfType<Expense>().FirstOrDefault(e => e.Id == id);
+            if (expense is null)
+            {
+                throw new TransactionNotFoundException($"Expense with id {id} not found.");
+            }
+            expenses.Add(expense);
+        }
+        foreach (Expense expense in expenses)
+        {
+            expense.SetCategory(categoryId);
+        }
+    }
 
     // Search
     public List<Expense> SearchByCategory(int? categoryId) => throw new NotImplementedException(); // only expenses have categories

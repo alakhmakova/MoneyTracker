@@ -124,6 +124,38 @@ public static class InputHelper
         }
     }
 
+    // Ask until the user enters ids separated by commas; "q" cancels
+    public static List<int> ReadIds(string prompt, string emptyInputMessage, string invalidIdsMessage)
+    {
+        while (true)
+        {
+            string userInput = ReadTextOrCancel(prompt, emptyInputMessage);
+            if (TryParseIds(userInput, out List<int> ids))
+            {
+                return ids;
+            }
+            ShowError(invalidIdsMessage);
+        }
+    }
+
+    // "12, 15, 20" -> [12, 15, 20]; duplicates are removed ("12, 12" -> [12]);
+    // false if any part is not a whole number greater than 0
+    public static bool TryParseIds(string input, out List<int> ids)
+    {
+        ids = new List<int>();
+        string[] numbers = input.Split(',');
+        foreach (string number in numbers)
+        {
+            if (!int.TryParse(number.Trim(), out int id) || id <= 0)
+            {
+                return false;
+            }
+            ids.Add(id);
+        }
+        ids = ids.Distinct().ToList(); // Distinct returns a new sequence, so the result is saved back
+        return true;
+    }
+
     // Ask until the user enters a valid currency; returns it in upper case ("sek" -> "SEK").
     // No "q" here: the currency is required
     public static string ReadCurrency(string prompt, string emptyInputMessage, string invalidCurrencyMessage)

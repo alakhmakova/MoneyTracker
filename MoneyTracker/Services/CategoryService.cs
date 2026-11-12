@@ -13,6 +13,7 @@ public class CategoryService
 
     // Next free id, to save in the file
     public int NextId => _ids.NextId;
+    public bool HasCategories => _categories.Count > 0;
 
     // Give the category the next id and add it to the list; 
     // throws ArgumentNullException if category is null
@@ -48,6 +49,13 @@ public class CategoryService
         return category;
     }
 
+    // Remove the category with this id;
+    // Throw CategoryNotFoundException if there is no category with this id
+    public void DeleteCategory(int id)
+    {
+        _categories.Remove(GetCategoryById(id));
+    }
+
     // Replaces the list with the loaded categories and restores the id counter.
     // Throws ArgumentNullException if categories is null
     public void LoadData(List<Category> categories, int savedNextId)
@@ -79,7 +87,7 @@ public class CategoryService
             .Count(e => e.CategoryId == categoryId); // only this category
     }
 
-    // Share of the category in all given expenses: 0.333 -> shown as "33.3 %" with ToString("P1").
+    // Share of the category in all given expenses: 0.3333 -> shown as "33.33%" with ToString("P2").
     // Returns 0 if the expenses total is 0 (nothing to divide by)
     public decimal CalculatePercentage(int? categoryId, List<Transaction> expenses)
     {

@@ -16,7 +16,7 @@ public class Expense : Transaction
     {
     }
 
-    // null = Uncategorized. TransactionService checks that the category exists
+    // null = Uncategorized. Nothing is checked here: ConsoleUI checks that the category exists
     public void SetCategory(int? categoryId)
     {
         CategoryId = categoryId;
