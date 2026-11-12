@@ -177,9 +177,58 @@ public class CategoryMenu
         _tablePrinter.DisplayCategoriesTable(_categoryService.GetAllCategories(), expenses, true, footer);
     }
 
-    // 8: find a category by id or name -> its table
+    // 8: categories table -> category id (0 - Uncategorized) -> statistics row of this category (total, count, percent of all expenses)
+    // -> its expenses sorted by date with the total under the table; repeat until q
     public void DisplayStatisticsByCategory()
     {
-        InputHelper.ShowWarning("Statistics by Category: not implemented yet");
+        if (!_categoryService.HasCategories)
+        {
+            InputHelper.ShowWarning("No categories yet. Create a category first (main menu 5).");
+            return;
+        }
+
+        _messages.ShowHeader("Statistics by category | Enter q to cancel");
+        try
+        {
+            while (true)
+            {
+                List<Transaction> allExpenses = _transactionService.GetAllExpenses();
+                _tablePrinter.DisplayCategoriesTable(_categoryService.GetAllCategories(), allExpenses, true);
+                try
+                {
+                    int id = InputHelper.ReadNumberInRange("Enter category id (0 - Uncategorized, q - back to menu): ", 0, int.MaxValue, "Category id can't be empty", "Category id must be a whole number");
+                    int? categoryId = null; // 0 -> Uncategorized
+                    List<Category> chosenCategory = new(); // stays empty for Uncategorized: its row is added by showUncategorized
+                    if (id > 0)
+                    {
+                        Category category = _categoryService.GetCategoryById(id);
+                        categoryId = category.Id;
+                        chosenCategory.Add(category);
+                    }
+
+                    // One row: percent is calculated from all expenses
+                    _tablePrinter.DisplayCategoriesTable(chosenCategory, allExpenses, id == 0);
+
+                    List<Transaction> expenses = _transactionService.SearchByCategory(categoryId);
+                    if (expenses.Count == 0)
+                    {
+                        InputHelper.ShowWarning("No expenses in this category\n");
+                    }
+                    else
+                    {
+                        string footer = _messages.GetTotalsText(expenses, TransactionType.Expense);
+                        _tablePrinter.DisplayTransactionsTable(expenses, footer);
+                    }
+                }
+                catch (CategoryNotFoundException e)
+                {
+                    InputHelper.ShowWarning(e.Message + "\n"); // empty line before the table
+                }
+            }
+        }
+        catch (UserCancelledException)
+        {
+            InputHelper.ShowInfo("Back to main menu");
+        }
     }
 }

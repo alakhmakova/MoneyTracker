@@ -222,10 +222,22 @@ public class TransactionService
         return items.OrderBy(i => i.Id).ToList();
     }
 
+    // Search: expenses of the category, sorted by date (oldest first); categoryId == null -> expenses without a category (Uncategorized).
+    // Only expenses have categories. Returns List<Transaction>, so the result can be shown with TablePrinter.DisplayTransactionsTable
+    public List<Transaction> SearchByCategory(int? categoryId)
+    {
+        return _transactions
+            .OfType<Expense>()
+            .Where(e => e.CategoryId == categoryId) // null == null -> true, so Uncategorized works without an extra check
+            .OrderBy(e => e.Date)
+            .ThenBy(e => e.Id)
+            .Cast<Transaction>()                    // List<Expense> can't be passed where List<Transaction> is expected
+            .ToList();
+    }
+
     // ---------- TODO: implement the methods below ----------
 
     // Search
-    public List<Expense> SearchByCategory(int? categoryId) => throw new NotImplementedException(); // only expenses have categories
     public List<Transaction> SearchByDateRange(DateTime from, DateTime to) => throw new NotImplementedException(); // BONUS: not in the menu yet
     public List<Transaction> SearchByName(string text) => throw new NotImplementedException();                   // BONUS: not in the menu yet
     public List<Transaction> SearchByAmountRange(decimal min, decimal max) => throw new NotImplementedException(); // BONUS: not in the menu yet
